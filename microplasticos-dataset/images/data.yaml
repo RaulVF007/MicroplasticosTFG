@@ -1,0 +1,4 @@
+train: /content/microplasticos_Segm/images/val
+val: /content/microplasticos_Segm/images/val
+nc: 3
+names: [ 'Fragment' , 'Line', 'Pellet' ]
