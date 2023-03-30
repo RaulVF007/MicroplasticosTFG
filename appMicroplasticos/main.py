@@ -5,7 +5,6 @@ from PyQt5 import uic, QtGui
 class GUI(QMainWindow):
     def __init__(self):
         super(GUI, self).__init__()
-        # Carga el archivo .ui
         uic.loadUi("MainWindow.ui", self)
         self.show()
         self.fileName = ""
@@ -23,6 +22,16 @@ class GUI(QMainWindow):
             pixmap = QtGui.QPixmap(self.fileName)
             pixmap = pixmap.scaled(self.width(), self.height())
             self.label.setPixmap(pixmap)
+
+    def resizeEvent(self, event):
+        try:
+            pixmap = QtGui.QPixmap(self.fileName)
+        except:
+            pixmap = QtGui.QPixmap("")
+
+        pixmap = pixmap.scaled(self.width(),self.height())
+        self.label.setPixmap(pixmap)
+        self.label.resize(self.width(),self.height())
 
 def main():
     app = QApplication([])
