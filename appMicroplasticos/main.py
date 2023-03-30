@@ -15,6 +15,8 @@ class GUI(QMainWindow):
 
         self.actionOpen_image.triggered.connect(self.openImage)
 
+        self.actionExit.triggered.connect(QApplication.quit)
+
     def openImage(self):
         options = QFileDialog.Options()
         self.fileName, _ = QFileDialog.getOpenFileName(self,"Open image", "","Image (*.png *.jpg *.jpeg)", options=options)
