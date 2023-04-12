@@ -7,6 +7,9 @@ class GUI(QMainWindow):
         super(GUI, self).__init__()
         uic.loadUi("MainWindow.ui", self)
         self.show()
+        self.actionIdentify_microplastics.setEnabled(False)
+        self.actionSave_results.setEnabled(False)
+
         self.fileName = ""
         pixmap = QtGui.QPixmap(self.fileName)
         pixmap = pixmap.scaled(self.width(), self.height())
@@ -28,6 +31,8 @@ class GUI(QMainWindow):
             pixmap = pixmap.scaled(self.width(), self.height())
             self.label.setPixmap(pixmap)
 
+            self.actionIdentify_microplastics.setEnabled(True)
+
     def resizeEvent(self, event):
         try:
             pixmap = QtGui.QPixmap(self.fileName)
@@ -41,9 +46,8 @@ class GUI(QMainWindow):
     def aboutTheApp(self):
         QMessageBox.about(self, "About the app", "App made by Raúl Vega"
          "\n1.- Choose an image you can identify microplastics in 'File' -> 'Open image'"
-         "\n2.- Start the identifying microplastics process in 'Edit' -> 'Identify microplastics'"
+         "\n2.- Start the identifying microplastics process in 'Process' -> 'Microplastics'"
          "\n3.- After executing the previous process, you can save the results by pressing 'File' -> 'Save results'")
-
 
 def main():
     app = QApplication([])
