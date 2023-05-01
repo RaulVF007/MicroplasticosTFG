@@ -1,11 +1,11 @@
-import yaml
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import *
+import os
+
+from PyQt5 import QtWidgets, QtGui, QtCore, uic
 import cv2
 import numpy as np
 import torch
-from PyQt5 import QtGui, uic
-from PyQt5.uic.properties import QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 
 from yolov5.utils.general import non_max_suppression
 from yolov5.models.common import DetectMultiBackend
@@ -27,6 +27,8 @@ class GUI(QMainWindow):
         self.actionOpen_image.triggered.connect(self.openImage)
 
         self.actionIdentify_microplastics.triggered.connect(self.identifyMicroplastics)
+
+        self.actionSave_results.triggered.connect(self.saveResults)
 
         self.actionExit.triggered.connect(QApplication.quit)
 
@@ -79,6 +81,37 @@ class GUI(QMainWindow):
             self.label.setPixmap(QtGui.QPixmap.fromImage(p))
             # Habilitar la opción de guardar resultados
             self.actionSave_results.setEnabled(True)
+
+    def saveResults(self):
+        if not self.fileName:
+            # No se ha seleccionado ninguna imagen
+            return
+
+        # Obtener el directorio de destino desde un diálogo de selección de directorio
+        dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select location for saving result")
+
+        # Guardar la imagen en el directorio de destino
+        file_name = os.path.basename(self.fileName)
+        file_root, file_ext = os.path.splitext(file_name)
+        new_file_name = f"{file_root}_identified{file_ext}"
+        new_file_path = os.path.join(dir_name, new_file_name)
+
+        # Obtener la imagen actual en formato OpenCV
+        qimage = self.label.pixmap().toImage()
+        image = np.array(qimage.bits().asarray(qimage.width() * qimage.height() * 4)).reshape(
+            (qimage.height(), qimage.width(), 4))[:, :, :3]
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        # Guardar la imagen
+        cv2.imwrite(new_file_path, image)
+
+        # Mostrar un mensaje de confirmación
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("The image has been saved correctly.")
+        msg.setWindowTitle("Save result")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
     def resizeEvent(self, event):
         try:
