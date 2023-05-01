@@ -1,11 +1,14 @@
+import yaml
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
-from PyQt5 import uic, QtGui
 import cv2
 import numpy as np
 import torch
-from PyQt5 import QtGui
-from yolov5.models.common import DetectMultiBackend
+from PyQt5 import QtGui, uic
+from PyQt5.uic.properties import QtWidgets
 
+from yolov5.utils.general import non_max_suppression
+from yolov5.models.common import DetectMultiBackend
 
 class GUI(QMainWindow):
     def __init__(self):
@@ -57,9 +60,25 @@ class GUI(QMainWindow):
         if len(im.shape) == 3:
             im = im[None]
         pred, proto = model(im)[:2]
-        print(pred)
+        if len(pred[0]) > 0:
+            # Aplicar Non-Maximum Suppression
+            conf_thresh = 0.55  # Umbral de confianza
+            iou_thresh = 0.55  # Umbral de IoU
+            pred = non_max_suppression(pred, conf_thresh, iou_thresh)
 
-        self.actionSave_results.setEnabled(True)
+            for obj in pred[0]:
+                    # Obtener las coordenadas en formato (x1, y1, x2, y2)
+                    x1, y1, x2, y2 = obj[:4]
+                    # Dibujar un rectángulo en la imagen
+                    cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            # Mostrar la imagen en el QLabel
+            h, w, ch = image.shape
+            bytesPerLine = ch * w
+            convertToQtFormat = QtGui.QImage(image.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
+            p = convertToQtFormat.scaled(640, 640, Qt.KeepAspectRatio)
+            self.label.setPixmap(QtGui.QPixmap.fromImage(p))
+            # Habilitar la opción de guardar resultados
+            self.actionSave_results.setEnabled(True)
 
     def resizeEvent(self, event):
         try:
