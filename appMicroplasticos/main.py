@@ -44,16 +44,13 @@ class GUI(QMainWindow):
             self.actionIdentify_microplastics.setEnabled(True)
 
     def identifyMicroplastics(self):
-        # Carga del modelo
         device = torch.device('cpu')
         weights = 'best.pt'
         model = DetectMultiBackend(weights, device=device)
 
-        # Carga de la imagen
         image = cv2.imread(self.fileName)
         image = cv2.resize(image, (640, 640), interpolation=cv2.INTER_LINEAR)
 
-        # Ejecución del modelo
         im = image.transpose((2, 0, 1))[::-1]
         im = np.ascontiguousarray(im)
         im = torch.from_numpy(im).to(model.device)
@@ -62,49 +59,38 @@ class GUI(QMainWindow):
             im = im[None]
         pred, proto = model(im)[:2]
         if len(pred[0]) > 0:
-            # Aplicar Non-Maximum Suppression
-            conf_thresh = 0.55  # Umbral de confianza
-            iou_thresh = 0.55  # Umbral de IoU
+            conf_thresh = 0.55
+            iou_thresh = 0.55
             pred = non_max_suppression(pred, conf_thresh, iou_thresh)
 
             for obj in pred[0]:
-                    # Obtener las coordenadas en formato (x1, y1, x2, y2)
-                    x1, y1, x2, y2 = obj[:4]
-                    # Dibujar un rectángulo en la imagen
-                    cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-            # Mostrar la imagen en el QLabel
+                x1, y1, x2, y2 = obj[:4]
+                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
             h, w, ch = image.shape
             bytesPerLine = ch * w
             convertToQtFormat = QtGui.QImage(image.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
             p = convertToQtFormat.scaled(640, 640, Qt.KeepAspectRatio)
             self.label.setPixmap(QtGui.QPixmap.fromImage(p))
-            # Habilitar la opción de guardar resultados
             self.actionSave_results.setEnabled(True)
 
     def saveResults(self):
         if not self.fileName:
-            # No se ha seleccionado ninguna imagen
             return
 
-        # Obtener el directorio de destino desde un diálogo de selección de directorio
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select location for saving result")
 
-        # Guardar la imagen en el directorio de destino
         file_name = os.path.basename(self.fileName)
         file_root, file_ext = os.path.splitext(file_name)
         new_file_name = f"{file_root}_identified{file_ext}"
         new_file_path = os.path.join(dir_name, new_file_name)
 
-        # Obtener la imagen actual en formato OpenCV
         qimage = self.label.pixmap().toImage()
         image = np.array(qimage.bits().asarray(qimage.width() * qimage.height() * 4)).reshape(
             (qimage.height(), qimage.width(), 4))[:, :, :3]
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        # Guardar la imagen
         cv2.imwrite(new_file_path, image)
 
-        # Mostrar un mensaje de confirmación
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText("The image has been saved correctly.")
