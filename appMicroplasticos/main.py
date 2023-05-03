@@ -51,7 +51,6 @@ class GUI(QMainWindow):
 
         # Carga de la imagen
         image = cv2.imread(self.fileName)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.resize(image, (640, 640), interpolation=cv2.INTER_LINEAR)
 
         # Ejecución del modelo
