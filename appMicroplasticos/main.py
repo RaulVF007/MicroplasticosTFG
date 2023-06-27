@@ -4,11 +4,18 @@ from PyQt5 import QtWidgets, QtGui, QtCore, uic
 import cv2
 import numpy as np
 import torch
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+from yolov5.utils.segment.general import process_mask
 
-from yolov5.utils.general import non_max_suppression
+from yolov5.utils.general import non_max_suppression, scale_boxes, Profile
+
+from yolov5.utils.plots import Annotator, colors
+
 from yolov5.models.common import DetectMultiBackend
+from yolov5.utils.torch_utils import select_device
+
 
 class GUI(QMainWindow):
     def __init__(self):
@@ -44,34 +51,52 @@ class GUI(QMainWindow):
             self.actionIdentify_microplastics.setEnabled(True)
 
     def identifyMicroplastics(self):
-        device = torch.device('cpu')
-        weights = 'best.pt'
-        model = DetectMultiBackend(weights, device=device)
+        device = select_device("cpu")
+        model = DetectMultiBackend("best.pt", device=device, dnn=False, data="data.yaml", fp16=False)
+        names = model.names
+        dt = (Profile(), Profile(), Profile())
 
+        # Load the image
         image = cv2.imread(self.fileName)
-        image = cv2.resize(image, (640, 640), interpolation=cv2.INTER_LINEAR)
 
-        im = image.transpose((2, 0, 1))[::-1]
-        im = np.ascontiguousarray(im)
-        im = torch.from_numpy(im).to(model.device)
-        im = im.float() / 255.0
-        if len(im.shape) == 3:
-            im = im[None]
-        pred, proto = model(im)[:2]
-        if len(pred[0]) > 0:
-            conf_thresh = 0.55
-            iou_thresh = 0.55
-            pred = non_max_suppression(pred, conf_thresh, iou_thresh)
+        with dt[0]:
+            im = torch.from_numpy(image).to(model.device)
+            im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
+            im /= 255  # 0 - 255 to 0.0 - 1.0
+            if len(im.shape) == 3:
+                im = im[None]  # expand for batch dim
+                im = np.transpose(im, (0, 3, 1, 2))
 
-            for obj in pred[0]:
-                x1, y1, x2, y2 = obj[:4]
-                cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-            h, w, ch = image.shape
-            bytesPerLine = ch * w
-            convertToQtFormat = QtGui.QImage(image.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
-            p = convertToQtFormat.scaled(640, 640, Qt.KeepAspectRatio)
-            self.label.setPixmap(QtGui.QPixmap.fromImage(p))
-            self.actionSave_results.setEnabled(True)
+        with dt[1]:
+            pred, proto = model(im, augment=False, visualize=False)[:2]
+
+        with dt[2]:
+            pred = non_max_suppression(pred, conf_thres=0.5, iou_thres=0.5, max_det=1000, nm=32)
+
+        for i, det in enumerate(pred):
+            annotator = Annotator(image, line_width=3, example=str(names))
+            if len(det):
+                masks = process_mask(proto[i], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
+                det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], image.shape).round()  # rescale boxes to im0 size
+                # Mask plotting
+                annotator.masks(
+                    masks,
+                    colors=[colors(x, True) for x in det[:, 5]],
+                    im_gpu=torch.as_tensor(image, dtype=torch.float16).to(device).permute(2, 0, 1).flip(0).contiguous())
+                # Write results
+                for j, (*xyxy, conf, cls) in enumerate(reversed(det[:, :6])):
+                    c = int(cls)
+                    label = f'{names[c]} {conf:.2f}'
+                    annotator.box_label(xyxy, label, color=colors(c, True))
+
+            image = annotator.result()
+
+        h, w, ch = image.shape
+        bytesPerLine = ch * w
+        convertToQtFormat = QtGui.QImage(image.data, w, h, bytesPerLine, QtGui.QImage.Format_RGB888)
+        p = convertToQtFormat.scaled(1024, 1280, Qt.KeepAspectRatio)
+        self.label.setPixmap(QtGui.QPixmap.fromImage(p))
+        self.actionSave_results.setEnabled(True)
 
     def saveResults(self):
         if not self.fileName:
@@ -97,16 +122,6 @@ class GUI(QMainWindow):
         msg.setWindowTitle("Save result")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
-
-    def resizeEvent(self, event):
-        try:
-            pixmap = QtGui.QPixmap(self.fileName)
-        except:
-            pixmap = QtGui.QPixmap("")
-
-        pixmap = pixmap.scaled(self.width(), self.height())
-        self.label.setPixmap(pixmap)
-        self.label.resize(self.width(), self.height())
 
     def aboutTheApp(self):
         QMessageBox.about(self, "About the app", "App made by Raúl Vega"
