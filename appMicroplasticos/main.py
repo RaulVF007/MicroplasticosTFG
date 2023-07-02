@@ -63,7 +63,6 @@ class GUI(QMainWindow):
         names = model.names
         dt = (Profile(), Profile(), Profile())
 
-        # Load the image
         image = cv2.imread(self.fileName)
 
         with dt[0]:
@@ -98,10 +97,6 @@ class GUI(QMainWindow):
                     annotator.box_label(xyxy, label, color=colors(c, True))
 
             image = annotator.result()
-            #Si muestro en este punto la imagen con un cv2.imshow("image",image) se ve perfecto
-   #         cv2.imshow("Image", image)
-   #         cv2.waitKey(0)
-   #         cv2.destroyAllWindows()
 
         height, width, channel = image.shape
         bytes_per_line = channel * width
@@ -145,7 +140,6 @@ def main():
     app = QApplication([])
     window = GUI()
     app.exec_()
-
 
 if __name__ == "__main__":
     main()
