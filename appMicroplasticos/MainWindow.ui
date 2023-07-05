@@ -46,8 +46,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1280</width>
-         <height>1024</height>
+         <width>1288</width>
+         <height>1018</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -111,6 +111,7 @@
      <string>Process</string>
     </property>
     <addaction name="actionIdentify_microplastics"/>
+    <addaction name="actionExport_parameters"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -173,6 +174,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+X</string>
+   </property>
+  </action>
+  <action name="actionExport_parameters">
+   <property name="text">
+    <string>Export parameters</string>
+   </property>
+   <property name="statusTip">
+    <string>Export parameters </string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
    </property>
   </action>
  </widget>
