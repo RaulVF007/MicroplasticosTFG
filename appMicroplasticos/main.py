@@ -1,4 +1,8 @@
+import csv
 import os
+
+import pandas
+import pandas as pd
 from PyQt5 import QtWidgets, QtGui, uic
 import cv2
 import numpy as np
@@ -17,9 +21,11 @@ class GUI(QMainWindow):
         self.show()
         self.actionIdentify_microplastics.setEnabled(False)
         self.actionSave_results.setEnabled(False)
+        self.actionExport_parameters.setEnabled(False)
 
         self.fileName = ""
         self.image = ""
+        self.dataframe = []
 
         pixmap = QtGui.QPixmap(self.fileName)
         pixmap = pixmap.scaled(self.width(), self.height())
@@ -32,6 +38,8 @@ class GUI(QMainWindow):
         self.actionIdentify_microplastics.triggered.connect(self.identifyMicroplastics)
 
         self.actionSave_results.triggered.connect(self.saveResults)
+
+        self.actionExport_parameters.triggered.connect(self.exportResults)
 
         self.actionExit.triggered.connect(QApplication.quit)
 
@@ -96,6 +104,18 @@ class GUI(QMainWindow):
                     label = f'{names[c]} {conf:.2f}'
                     annotator.box_label(xyxy, label, color=colors(c, True))
 
+                    xyxy = [coord.tolist() for coord in xyxy]
+                    enabledPixels = np.where(masks[j] > 0)
+                    pixelsPerMicroplastics = len(enabledPixels[0])
+
+                    microplastic = {
+                        "tipo": names[c],
+                        "coordenadas": xyxy,
+                        "confianza": "{:.2f}".format(conf),
+                        "pixeles": pixelsPerMicroplastics
+                    }
+                    self.dataframe.append(microplastic)
+
             image = annotator.result()
 
         height, width, channel = image.shape
@@ -108,6 +128,7 @@ class GUI(QMainWindow):
         self.label.setPixmap(pixmap)
         self.label.setScaledContents(True)
         self.actionSave_results.setEnabled(True)
+        self.actionExport_parameters.setEnabled(True)
 
     def saveResults(self):
         dir_name = QtWidgets.QFileDialog.getExistingDirectory(self, "Select location for saving result")
@@ -130,11 +151,40 @@ class GUI(QMainWindow):
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
+    def exportResults(self):
+        dir_name = QFileDialog.getExistingDirectory(self, "Select location for exporting file")
+
+        file_name = os.path.basename(self.fileName)
+        file_root, _ = os.path.splitext(file_name)
+        new_file_name = file_root + ".txt"
+        new_file_path = os.path.join(dir_name, new_file_name)
+
+        with open(new_file_path, 'w') as file:
+            file.write("Tipo de microplástico,Coordenadas,Confianza,Número de píxeles\n")
+
+            for m in self.dataframe:
+                tipo = m['tipo']
+                coordenadas = ','.join([str(c) for c in m['coordenadas']])
+                confianza = str(m['confianza'])
+                pixeles = str(m['pixeles'])
+
+                row = f"{tipo},{coordenadas},{confianza},{pixeles}\n"
+                file.write(row)
+
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("The file has been exported successfully.")
+        msg.setWindowTitle("Export file")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
     def aboutTheApp(self):
-        QMessageBox.about(self, "About the app", "App made by Raúl Vega"
+        QMessageBox.about(self, "About the app", "App made by Raúl Vega\n"
          "\n1.- Choose an image you can identify microplastics in 'File' -> 'Open image'"
          "\n2.- Start the identifying microplastics process in 'Process' -> 'Microplastics'"
-         "\n3.- After executing the previous process, you can save the results by pressing 'File' -> 'Save results'")
+         "\n3.- After executing the previous process, you can save the results by pressing 'File' -> 'Save results'"
+         "\n4.- After executing the process 2, you can also export a file with parameters related to the segmentation" \
+         " proccess in 'Process' -> 'Export parameters'")
 
 def main():
     app = QApplication([])
