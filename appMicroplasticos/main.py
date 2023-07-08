@@ -1,8 +1,4 @@
-import csv
 import os
-
-import pandas
-import pandas as pd
 from PyQt5 import QtWidgets, QtGui, uic
 import cv2
 import numpy as np
