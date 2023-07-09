@@ -1,0 +1,4 @@
+train: /content/microplasticosTFG-dataset-70-30/images/train
+val: /content/microplasticosTFG-dataset-70-30/images/val
+nc: 3
+names: [ 'Fragment' , 'Line', 'Pellet' ]

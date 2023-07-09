@@ -1,4 +1,0 @@
-train: /content/microplasticosTFG-dataset/images/train
-val: /content/microplasticosTFG-dataset/images/val
-nc: 3
-names: [ 'Fragment' , 'Line', 'Pellet' ]
