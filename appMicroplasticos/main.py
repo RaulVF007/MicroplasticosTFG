@@ -51,6 +51,9 @@ class GUI(QMainWindow):
             self.label.setPixmap(pixmap)
             self.image = pixmap
             self.actionIdentify_microplastics.setEnabled(True)
+            self.dataframe.clear()
+            self.actionSave_results.setEnabled(False)
+            self.actionExport_parameters.setEnabled(False)
 
     def resizeEvent(self, event):
         try:
